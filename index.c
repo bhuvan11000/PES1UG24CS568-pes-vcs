@@ -175,25 +175,31 @@ static int compare_index_entries(const void *a, const void *b) {
 }
 
 int index_save(const Index *index) {
-    // Sort before saving to maintain predictable index structure
-    Index sorted = *index;
-    qsort(sorted.entries, sorted.count, sizeof(IndexEntry), compare_index_entries);
+    // Allocate on heap to prevent stack overflow (Index struct is ~5.6MB)
+    Index *sorted = malloc(sizeof(Index));
+    if (!sorted) return -1;
+
+    *sorted = *index;
+    qsort(sorted->entries, sorted->count, sizeof(IndexEntry), compare_index_entries);
 
     char tmp_path[520];
     snprintf(tmp_path, sizeof(tmp_path), "%s.tmp", INDEX_FILE);
 
     FILE *f = fopen(tmp_path, "w");
-    if (!f) return -1;
+    if (!f) {
+        free(sorted);
+        return -1;
+    }
 
     char hash_hex[HASH_HEX_SIZE + 1];
-    for (int i = 0; i < sorted.count; i++) {
-        hash_to_hex(&sorted.entries[i].hash, hash_hex);
+    for (int i = 0; i < sorted->count; i++) {
+        hash_to_hex(&sorted->entries[i].hash, hash_hex);
         fprintf(f, "%06o %s %lu %u %s\n",
-                sorted.entries[i].mode,
+                sorted->entries[i].mode,
                 hash_hex,
-                (unsigned long)sorted.entries[i].mtime_sec,
-                sorted.entries[i].size,
-                sorted.entries[i].path);
+                (unsigned long)sorted->entries[i].mtime_sec,
+                sorted->entries[i].size,
+                sorted->entries[i].path);
     }
 
     // Ensure data is synced completely before rename
@@ -201,6 +207,7 @@ int index_save(const Index *index) {
     fsync(fileno(f));
     fclose(f);
 
+    free(sorted); // Free the heap memory
     return rename(tmp_path, INDEX_FILE);
 }
 
