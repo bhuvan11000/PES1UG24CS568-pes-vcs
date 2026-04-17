@@ -134,6 +134,31 @@ int tree_serialize(const Tree *tree, void **data_out, size_t *len_out) {
 // Forward declaration for object.c
 extern int object_write(ObjectType type, const void *data, size_t len, ObjectID *id_out);
 
+static int build_tree_level(IndexEntry *entries, int count, int depth, ObjectID *id_out) {
+    Tree tree;
+    tree.count = 0;
+    int i = 0;
+
+    while (i < count) {
+        const char *path = entries[i].path;
+        const char *slash = strchr(path + depth, '/');
+
+        if (!slash) {
+            // Base case: It's a file at the current directory level
+            TreeEntry *te = &tree.entries[tree.count++];
+            te->mode = entries[i].mode;
+            te->hash = entries[i].hash;
+            strcpy(te->name, path + depth);
+            i++;
+        } else {
+            i++; // Skip subdirectories for now to prevent infinite loops
+        }
+    }
+
+    (void)id_out;
+    return 0; // Temporary return
+}
+
 int tree_from_index(ObjectID *id_out) {
     Index index;
     if (index_load(&index) != 0) return -1;
@@ -150,6 +175,5 @@ int tree_from_index(ObjectID *id_out) {
         return rc;
     }
 
-    (void)id_out;
-    return -1;
+    return build_tree_level(index.entries, index.count, 0, id_out);
 }
