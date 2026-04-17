@@ -151,7 +151,21 @@ static int build_tree_level(IndexEntry *entries, int count, int depth, ObjectID 
             strcpy(te->name, path + depth);
             i++;
         } else {
-            i++; // Skip subdirectories for now to prevent infinite loops
+            // Extract the directory name
+            int dir_len = slash - (path + depth);
+            char dir_name[256];
+            strncpy(dir_name, path + depth, dir_len);
+            dir_name[dir_len] = '\0';
+
+            // Find all contiguous entries sharing this exact directory prefix
+            int j = i;
+            while (j < count) {
+                if (strncmp(entries[j].path + depth, dir_name, dir_len) != 0) break;
+                if (entries[j].path[depth + dir_len] != '/') break;
+                j++;
+            }
+
+            i = j; // Advance outer loop past the processed directory cluster
         }
     }
 
