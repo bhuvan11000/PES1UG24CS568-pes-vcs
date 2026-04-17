@@ -117,9 +117,11 @@ int object_write(ObjectType type, const void *data, size_t len, ObjectID *id_out
     char path[512];
     object_path(id_out, path, sizeof(path));
 
+    char hex[HASH_HEX_SIZE + 1];
+    hash_to_hex(id_out, hex);
+
     char shard_dir[512];
-    strncpy(shard_dir, path, strlen(path) - 39); // Extract .pes/objects/XX
-    shard_dir[strlen(path) - 39] = '\0';
+    snprintf(shard_dir, sizeof(shard_dir), "%s/%.2s", OBJECTS_DIR, hex);
     mkdir(shard_dir, 0755);
 
     // 5. Atomic write using temp file
