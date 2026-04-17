@@ -165,6 +165,17 @@ static int build_tree_level(IndexEntry *entries, int count, int depth, ObjectID 
                 j++;
             }
 
+            // Build the subtree recursively
+            ObjectID subtree_id = {0};
+            if (build_tree_level(&entries[i], j - i, depth + dir_len + 1, &subtree_id) != 0) {
+                return -1;
+            }
+
+            TreeEntry *te = &tree.entries[tree.count++];
+            te->mode = 0040000; // MODE_DIR constant
+            te->hash = subtree_id;
+            strcpy(te->name, dir_name);
+
             i = j; // Advance outer loop past the processed directory cluster
         }
     }
