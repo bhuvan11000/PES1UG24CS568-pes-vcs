@@ -200,6 +200,13 @@ int commit_create(const char *message, ObjectID *commit_id_out) {
     // 1. Build tree from index snapshot
     if (tree_from_index(&c.tree) != 0) return -1;
 
+    // 2. Resolve parent commit
+    if (head_read(&c.parent) == 0) {
+        c.has_parent = 1;
+    } else {
+        c.has_parent = 0; // Initial commit
+    }
+
     // Temporary variables to prevent unused parameter warnings
     (void)message;
     (void)commit_id_out;
