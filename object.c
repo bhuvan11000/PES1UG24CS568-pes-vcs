@@ -94,9 +94,54 @@ int object_exists(const ObjectID *id) {
 //
 // Returns 0 on success, -1 on error.
 int object_write(ObjectType type, const void *data, size_t len, ObjectID *id_out) {
-    // TODO: Implement
-    (void)type; (void)data; (void)len; (void)id_out;
-    return -1;
+    // 1. Determine type string and construct header
+    const char *type_str = (type == OBJ_BLOB) ? "blob" : (type == OBJ_TREE) ? "tree" : "commit";
+    char header[128];
+    int header_len = snprintf(header, sizeof(header), "%s %zu", type_str, len) + 1; // +1 for \0
+
+    // 2. Combine header and data
+    size_t full_len = header_len + len;
+    unsigned char *full_data = malloc(full_len);
+    if (!full_data) return -1;
+    memcpy(full_data, header, header_len);
+    memcpy(full_data + header_len, data, len);
+
+    // 3. Compute hash and handle deduplication
+    compute_hash(full_data, full_len, id_out);
+    if (object_exists(id_out)) {
+        free(full_data);
+        return 0; // Already exists
+    }
+
+    // 4. Create directory and path
+    char path[512];
+    object_path(id_out, path, sizeof(path));
+
+    char shard_dir[512];
+    strncpy(shard_dir, path, strlen(path) - 39); // Extract .pes/objects/XX
+    shard_dir[strlen(path) - 39] = '\0';
+    mkdir(shard_dir, 0755);
+
+    // 5. Atomic write using temp file
+    char tmp_path[512];
+    snprintf(tmp_path, sizeof(tmp_path), "%s.tmp", path);
+
+    int fd = open(tmp_path, O_CREAT | O_WRONLY | O_TRUNC, 0644);
+    if (fd < 0) {
+        free(full_data);
+        return -1;
+    }
+
+    if (write(fd, full_data, full_len) != (ssize_t)full_len) {
+        close(fd); free(full_data); return -1;
+    }
+
+    fsync(fd);
+    close(fd);
+
+    rename(tmp_path, path);
+    free(full_data);
+    return 0;
 }
 
 // Read an object from the store.
