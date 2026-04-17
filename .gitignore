@@ -17,4 +17,7 @@ test_tree
 .vscode/
 .idea/
 
+# Text files for testing
+*.txt
+
 
