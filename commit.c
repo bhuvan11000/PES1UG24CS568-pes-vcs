@@ -207,8 +207,11 @@ int commit_create(const char *message, ObjectID *commit_id_out) {
         c.has_parent = 0; // Initial commit
     }
 
-    // Temporary variables to prevent unused parameter warnings
-    (void)message;
+    // 3. Populate metadata
+    strncpy(c.author, pes_author(), sizeof(c.author) - 1);
+    c.timestamp = (uint64_t)time(NULL);
+    strncpy(c.message, message, sizeof(c.message) - 1);
+
     (void)commit_id_out;
     return 0;
 }
