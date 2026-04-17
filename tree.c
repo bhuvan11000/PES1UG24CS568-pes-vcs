@@ -186,6 +186,7 @@ static int build_tree_level(IndexEntry *entries, int count, int depth, ObjectID 
 
     int rc = object_write(OBJ_TREE, data, len, id_out);
     free(data);
+
     return rc;
 }
 

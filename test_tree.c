@@ -11,6 +11,8 @@
 #include <assert.h>
 #include <stdlib.h>
 
+extern int object_write(ObjectType type, const void *data, size_t len, ObjectID *id_out);
+
 void test_tree_roundtrip(void) {
     // Build a tree manually
     Tree original;
@@ -36,6 +38,9 @@ void test_tree_roundtrip(void) {
     assert(data != NULL);
     assert(len > 0);
     printf("Serialized tree: %zu bytes\n", len);
+
+    ObjectID dummy_id;
+    object_write(OBJ_TREE, data, len, &dummy_id);
 
     // Parse back
     Tree parsed;
