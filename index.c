@@ -232,7 +232,20 @@ int index_add(Index *index, const char *path) {
     }
     free(data);
 
-    // Temporary return for this step
-    (void)index;
-    return 0;
+    IndexEntry *entry = index_find(index, path);
+    if (!entry) {
+        if (index->count >= MAX_INDEX_ENTRIES) return -1;
+        entry = &index->entries[index->count++];
+    }
+
+    // Simplified mode mapping
+    entry->mode = (st.st_mode & S_IXUSR) ? 0100755 : 0100644;
+    entry->hash = blob_id;
+    entry->mtime_sec = st.st_mtime;
+    entry->size = st.st_size;
+
+    strncpy(entry->path, path, sizeof(entry->path) - 1);
+    entry->path[sizeof(entry->path) - 1] = '\0'; // Ensure null termination
+
+    return index_save(index);
 }
